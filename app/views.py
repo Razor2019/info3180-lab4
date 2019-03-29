@@ -10,9 +10,10 @@ from flask import render_template, request, redirect, url_for, flash, session, a
 from werkzeug.utils import secure_filename
 
 
-###
-# Routing for your application.
-###
+from.form import  UploadForm
+
+
+### Routing for your application.###
 
 @app.route('/')
 def home():
@@ -28,17 +29,27 @@ def about():
 
 @app.route('/upload', methods=['POST', 'GET'])
 def upload():
+    up= UploadForm()
     if not session.get('logged_in'):
         abort(401)
-
-    # Instantiate your form class
-
-    # Validate file upload on submit
+    
     if request.method == 'POST':
-        # Get file data and save to your uploads folder
-
-        flash('File Saved', 'success')
-        return redirect(url_for('home'))
+        
+        
+        
+        
+        
+        if up.validate_on_submit():
+            photo = up.photo.data
+            filename = secure_filename(photo.filename)
+            photo.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            flash('File Saved', 'success')
+            return redirect(url_for('home'))
+    else:
+         return render_template('upload.html',form  = up)
+        
+        
+    
 
     return render_template('upload.html')
 
@@ -64,9 +75,8 @@ def logout():
     return redirect(url_for('home'))
 
 
-###
-# The functions below should be applicable to all Flask apps.
-###
+
+
 
 # Flash errors from the form if validation fails
 def flash_errors(form):
@@ -99,7 +109,22 @@ def add_header(response):
 def page_not_found(error):
     """Custom 404 page."""
     return render_template('404.html'), 404
-
+    
+    
+def get_uploaded_images():
+    lst=[]
+    rootdir = os.getcwd()
+    for subdir, dirs, files in os.walk(rootdir + '/app/static/uploads'):
+        for file in files:
+                lst.append(file)
+    return lst
+    
+@app.route('/files')
+def files():
+    if not session.get('logged_in'):
+        abort(401)
+    lst=get_uploaded_images()
+    return render_template('files.html',lst=lst)
 
 if __name__ == '__main__':
     app.run(debug=True, host="0.0.0.0", port="8080")
